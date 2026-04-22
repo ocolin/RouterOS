@@ -92,9 +92,9 @@ class Session implements SessionInterface
 
         $response = $this->transport->readSentence();
         try {
-            match ($response->reply) {
-                'done' => $this->isLoggedIn = true,
-                'trap' => self::handleTrap($response),
+            match( $response->reply ) {
+                'done'  => $this->handleDoneResponse( $response ),
+                'trap'  => self::handleTrap($response),
                 default => throw new LoginException(
                     message: "Unexpected reply: {$response->reply}"
                 )
@@ -164,5 +164,52 @@ class Session implements SessionInterface
     public function isLoggedIn() : bool
     {
         return $this->isLoggedIn;
+    }
+
+
+
+/*
+----------------------------------------------------------------------------- */
+
+    private function handleDoneResponse( Sentence $sentence ) : void
+    {
+        $challenge = self::parseWord( $sentence, 'ret' );
+        if( $challenge !== null ) {
+            $this->legacyLogin( $challenge );
+            return;
+        }
+        $this->isLoggedIn = true;
+    }
+
+
+/*
+----------------------------------------------------------------------------- */
+
+    private function legacyLogin( string $challenge ) : void
+    {
+        $challengeBytes = pack( 'H*', $challenge );
+        $hash = md5( string: "\x00" . $this->config->password . $challengeBytes );
+
+        $this->transport->sendSentence([
+            '/login',
+            '=name=' . $this->config->username,
+            '=response=00' . $hash,
+        ]);
+
+        $response = $this->transport->readSentence();
+        try {
+            match( $response->reply ) {
+                'done'  => $this->isLoggedIn = true,
+                'trap'  => self::handleTrap( $response ),
+                default => throw new LoginException(
+                    message: "Unexpected reply: {$response->reply}"
+                )
+            };
+        } catch( SessionException $e ) {
+            throw new LoginException(
+                message: $e->getMessage(),
+                code:    $e->getCode()
+            );
+        }
     }
 }

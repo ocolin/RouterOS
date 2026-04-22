@@ -80,4 +80,36 @@ class SessionTest extends TestCase
             $session->sendCommand(['/interface/print'])
         );
     }
+
+
+    public function testLegacyLogin() : void
+    {
+        $transport = $this->createStub( TransportInterface::class );
+        $transport->method('readSentence' )
+            ->willReturnOnConsecutiveCalls(
+                new Sentence(['!done', '=ret=abc123def456']),  // challenge
+                new Sentence(['!done'])                         // success
+            );
+
+        $config  = new Config(['host' => 'localhost']);
+        $session = new Session( config: $config, transport: $transport );
+        $session->login();
+
+        $this->assertTrue( $session->isLoggedIn() );
+    }
+
+    public function testLegacyLoginFailure() : void
+    {
+        $this->expectException( SessionException::class );
+        $transport = $this->createStub( TransportInterface::class );
+        $transport->method('readSentence' )
+            ->willReturnOnConsecutiveCalls(
+                new Sentence(['!done', '=ret=abc123def456']),  // challenge
+                new Sentence(['!trap', '=message=invalid user name or password'])                         // success
+            );
+
+        $config  = new Config(['host' => 'localhost']);
+        $session = new Session( config: $config, transport: $transport );
+        $session->login();
+    }
 }
