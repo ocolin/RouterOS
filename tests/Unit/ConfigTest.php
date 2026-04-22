@@ -24,7 +24,6 @@ class ConfigTest extends TestCase
             'timeout' => 66,
             'socketTimeout' => 55,
             'sslVerify' => false,
-            'throwOnError' => true
         ]);
         $this->assertSame( 'argHost', $config->host );
         $this->assertSame( 'argUsername', $config->username );
@@ -35,7 +34,6 @@ class ConfigTest extends TestCase
         $this->assertSame( 66, $config->timeout );
         $this->assertSame( 55, $config->socketTimeout );
         $this->assertSame( false, $config->sslVerify );
-        $this->assertSame( true, $config->throwOnError );
     }
 
     public function testAllFromEnv() : void
@@ -51,7 +49,6 @@ class ConfigTest extends TestCase
         $this->assertSame( 99, $config->timeout );
         $this->assertSame( 88, $config->socketTimeout );
         $this->assertSame( true, $config->sslVerify );
-        $this->assertSame( false, $config->throwOnError );
     }
 
     public function testAllDefaults() : void
@@ -66,7 +63,6 @@ class ConfigTest extends TestCase
         $this->assertSame( 10, $config->timeout );
         $this->assertSame( 30, $config->socketTimeout );
         $this->assertSame( false, $config->sslVerify );
-        $this->assertSame( true, $config->throwOnError );
     }
 
     public function testMissingHostThrows() : void
@@ -98,7 +94,6 @@ class ConfigTest extends TestCase
         $this->assertSame( 22, $config->timeout );
         $this->assertSame( 33, $config->socketTimeout );
         $this->assertSame( true, $config->sslVerify );
-        $this->assertSame( false, $config->throwOnError );
     }
 
     public function testObjectInput() : void
@@ -125,7 +120,6 @@ class ConfigTest extends TestCase
         $this->assertSame( 77, $config->timeout );
         $this->assertSame( 88, $config->socketTimeout );
         $this->assertSame( false, $config->sslVerify );
-        $this->assertSame( false, $config->throwOnError );
     }
 
     public function setUp() : void
@@ -139,7 +133,6 @@ class ConfigTest extends TestCase
         putenv('ROUTEROS_TIMEOUT');
         putenv('ROUTEROS_SOCKET_TIMEOUT');
         putenv('ROUTEROS_SSL_VERIFY');
-        putenv('ROUTEROS_THROW_ON_ERROR');
     }
 
     private static function populateEnvVars() : void
@@ -153,6 +146,5 @@ class ConfigTest extends TestCase
         putenv('ROUTEROS_TIMEOUT=99');
         putenv('ROUTEROS_SOCKET_TIMEOUT=88');
         putenv('ROUTEROS_SSL_VERIFY=true');
-        putenv('ROUTEROS_THROW_ON_ERROR=false');
     }
 }

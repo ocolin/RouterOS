@@ -24,7 +24,7 @@ class Session implements SessionInterface
      */
     private bool $isLoggedIn = false;
 
-/*
+/* CONSTRUCTOR
 ----------------------------------------------------------------------------- */
 
     /**
@@ -42,10 +42,12 @@ class Session implements SessionInterface
 
 
 
-/*
+/* SEND COMMAND
 ----------------------------------------------------------------------------- */
 
     /**
+     * Send command request to device.
+     *
      * @param string[] $words List of words to send device.
      * @return Generator Handle response words one at a time.
      * @throws SessionException Unexpected reply.
@@ -92,9 +94,9 @@ class Session implements SessionInterface
 
         $response = $this->transport->readSentence();
         try {
-            match ($response->reply) {
-                'done' => $this->isLoggedIn = true,
-                'trap' => self::handleTrap($response),
+            match( $response->reply ) {
+                'done'  => $this->handleDoneResponse( $response ),
+                'trap'  => self::handleTrap($response),
                 default => throw new LoginException(
                     message: "Unexpected reply: {$response->reply}"
                 )
@@ -137,6 +139,8 @@ class Session implements SessionInterface
 ----------------------------------------------------------------------------- */
 
     /**
+     * Parse content from a response sentence.
+     *
      * @param Sentence $sentence Sentence object to parse.
      * @param string $key Key parameter to look for.
      * @return ?string Get value if it exists.
@@ -164,5 +168,65 @@ class Session implements SessionInterface
     public function isLoggedIn() : bool
     {
         return $this->isLoggedIn;
+    }
+
+
+
+/* HANDLE DONE RESPONSE FROM LOGIN
+----------------------------------------------------------------------------- */
+
+    /**
+     * Check login response for legacy response and handle.
+     *
+     * @param Sentence $sentence Login response sentence.
+     * @return void
+     */
+    private function handleDoneResponse( Sentence $sentence ) : void
+    {
+        $challenge = self::parseWord( $sentence, 'ret' );
+        if( $challenge !== null ) {
+            $this->legacyLogin( $challenge );
+            return;
+        }
+        $this->isLoggedIn = true;
+    }
+
+
+
+/* LOGIN FOR LEGACY DEVICES
+----------------------------------------------------------------------------- */
+
+    /**
+     * Handle logging in for legacy devices.
+     *
+     * @param string $challenge Challenge from a legacy response.
+     * @return void
+     */
+    private function legacyLogin( string $challenge ) : void
+    {
+        $challengeBytes = pack( 'H*', $challenge );
+        $hash = md5( string: "\x00" . $this->config->password . $challengeBytes );
+
+        $this->transport->sendSentence([
+            '/login',
+            '=name=' . $this->config->username,
+            '=response=00' . $hash,
+        ]);
+
+        $response = $this->transport->readSentence();
+        try {
+            match( $response->reply ) {
+                'done'  => $this->isLoggedIn = true,
+                'trap'  => self::handleTrap( $response ),
+                default => throw new LoginException(
+                    message: "Unexpected reply: {$response->reply}"
+                )
+            };
+        } catch( SessionException $e ) {
+            throw new LoginException(
+                message: $e->getMessage(),
+                code:    $e->getCode()
+            );
+        }
     }
 }

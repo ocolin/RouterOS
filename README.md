@@ -487,8 +487,8 @@ The following features are planned for future releases:
 - **Concurrent commands** — support for tagged commands running simultaneously
 - **Streaming cancellation** — explicit `/cancel` command support
 - **SSH transport** — alternative transport layer using SSH authentication
-- **Legacy authentication** — support for RouterOS pre-6.43 login scheme
 - **CLI-style input** — parse RouterOS CLI syntax directly as command input
+- **Laravel integration** — Service Provider and Facade for Laravel applications
 
 ## License
 
