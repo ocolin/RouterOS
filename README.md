@@ -28,9 +28,14 @@ support, environment variable configuration, and a comprehensive test suite.
   - [Query](#query)
   - [Logical Operators](#logical-operators)
   - [Proplist](#proplist)
+  - [Tags](#tags)
   - [Aliases](#Aliases)
 - [Streaming](#streaming)
 - [SSL](#ssl)
+- [Laravel Integration](#laravel-integration)
+  - [Laravel Installation](#laravel-installation)
+  - [Laravel Configuration](#Laravel-configuration)
+  - [Laravel Usage](#Laravel-usage)
 - [Migrating from routeros-api-php](#migrating-from-routeros-api-php)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -339,6 +344,18 @@ The `proplist` allows you to limit the columns that are returned in your results
 $command = new Command( '/interface/print' )->proplist(['name', 'type']);
 ```
 
+### Tags
+
+Tag IDs can be added to queries.
+
+```php
+$command = new Command( '/interface/print' )->tag( 123 );
+```
+
+```php
+$command = new Command( '/interface/print' )->tag( 'abc' );
+```
+
 ### Aliases
 
 There are a few alias functions which exist for those using method names found in other libraries.
@@ -446,6 +463,56 @@ $client = new Client([
 
 ---
 
+## Laravel Integration
+
+This package includes a Service Provider for easy integration with Laravel
+applications.
+
+### Laravel Installation
+
+Require the Laravel support package:
+
+```bash
+composer require illuminate/support
+```
+
+The Service Provider will be automatically discovered by Laravel.
+
+### Laravel Configuration
+
+Publish the configuration file:
+
+```bash
+php artisan vendor:publish --provider="Ocolin\RouterOS\Laravel\ServiceProvider"
+```
+
+This creates `config/routeros.php` in your Laravel application. Update your
+`.env` file with your device credentials:
+ROUTEROS_HOST=192.168.88.1
+ROUTEROS_USERNAME=admin
+ROUTEROS_PASSWORD=secret
+
+### Laravel Usage
+
+The `Client` is automatically registered in Laravel's service container and
+can be injected into your controllers, services, or jobs:
+
+```php
+use Ocolin\RouterOS\Client;
+
+class NetworkController extends Controller
+{
+    public function __construct( private Client $client ) {}
+
+    public function interfaces() : array
+    {
+        return $this->client->query( '/interface/print' );
+    }
+}
+```
+
+---
+
 ## Migrating from routeros-api-php
 
 This library was designed as a maintained alternative to the widely used but
@@ -484,11 +551,11 @@ separate setter methods. The parameter names are similar but not identical:
 
 The following features are planned for future releases:
 
-- **Concurrent commands** — support for tagged commands running simultaneously
+- **Concurrent commands** — multi-tag usage
 - **Streaming cancellation** — explicit `/cancel` command support
 - **SSH transport** — alternative transport layer using SSH authentication
 - **CLI-style input** — parse RouterOS CLI syntax directly as command input
-- **Laravel integration** — Service Provider and Facade for Laravel applications
+- **Laravel integration** — Facade for Laravel applications
 
 ## License
 
