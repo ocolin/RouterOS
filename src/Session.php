@@ -24,7 +24,7 @@ class Session implements SessionInterface
      */
     private bool $isLoggedIn = false;
 
-/*
+/* CONSTRUCTOR
 ----------------------------------------------------------------------------- */
 
     /**
@@ -42,10 +42,12 @@ class Session implements SessionInterface
 
 
 
-/*
+/* SEND COMMAND
 ----------------------------------------------------------------------------- */
 
     /**
+     * Send command request to device.
+     *
      * @param string[] $words List of words to send device.
      * @return Generator Handle response words one at a time.
      * @throws SessionException Unexpected reply.
@@ -137,6 +139,8 @@ class Session implements SessionInterface
 ----------------------------------------------------------------------------- */
 
     /**
+     * Parse content from a response sentence.
+     *
      * @param Sentence $sentence Sentence object to parse.
      * @param string $key Key parameter to look for.
      * @return ?string Get value if it exists.
@@ -168,9 +172,15 @@ class Session implements SessionInterface
 
 
 
-/*
+/* HANDLE DONE RESPONSE FROM LOGIN
 ----------------------------------------------------------------------------- */
 
+    /**
+     * Check login response for legacy response and handle.
+     *
+     * @param Sentence $sentence Login response sentence.
+     * @return void
+     */
     private function handleDoneResponse( Sentence $sentence ) : void
     {
         $challenge = self::parseWord( $sentence, 'ret' );
@@ -182,9 +192,16 @@ class Session implements SessionInterface
     }
 
 
-/*
+
+/* LOGIN FOR LEGACY DEVICES
 ----------------------------------------------------------------------------- */
 
+    /**
+     * Handle logging in for legacy devices.
+     *
+     * @param string $challenge Challenge from a legacy response.
+     * @return void
+     */
     private function legacyLogin( string $challenge ) : void
     {
         $challengeBytes = pack( 'H*', $challenge );
