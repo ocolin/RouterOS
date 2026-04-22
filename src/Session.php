@@ -113,6 +113,19 @@ class Session implements SessionInterface
 
 
 
+/* IS USER LOGGED IN?
+----------------------------------------------------------------------------- */
+
+    /**
+     * @return bool State of login.
+     */
+    public function isLoggedIn() : bool
+    {
+        return $this->isLoggedIn;
+    }
+
+
+
 /* HANDLE A TRAP
 ----------------------------------------------------------------------------- */
 
@@ -155,19 +168,6 @@ class Session implements SessionInterface
             }
         }
         return null;
-    }
-
-
-
-/* IS USER LOGGED IN?
------------------------------------------------------------------------------ */
-
-    /**
-     * @return bool State of login.
-     */
-    public function isLoggedIn() : bool
-    {
-        return $this->isLoggedIn;
     }
 
 
