@@ -4,6 +4,7 @@ declare( strict_types = 1 );
 
 namespace Ocolin\RouterOS;
 
+use Ocolin\RouterOS\Exceptions\TimeoutException;
 use Ocolin\RouterOS\Exceptions\TransportException;
 use Ocolin\RouterOS\Exceptions\ConnectionException;
 use Ocolin\RouterOS\Interfaces\TransportInterface;
@@ -28,33 +29,30 @@ class Transport implements TransportInterface
         $errCode = 0;
         $errMsg  = '';
 
-        // SSL connection
-        if( $this->config->ssl ) {
-            $context = stream_context_create([
-                'ssl' => [
-                    'verify_peer'      => $this->config->sslVerify,
-                    'verify_peer_name' => $this->config->sslVerify,
-                ]
-            ]);
+        // Set protocol
+        $proto = $this->config->ssl ? 'ssl://' : 'tcp://';
 
-            $socket = @stream_socket_client(
-                     address: "ssl://{$this->config->host}:{$this->config->sslPort}",
-               error_code: $errCode,
-            error_message: $errMsg,
-                     timeout: $this->config->timeout,
-                     context: $context
-            );
-        }
-        // Unsecure connection
-        else {
-            $socket = @fsockopen(
-                        hostname: $this->config->host,
-                            port: $this->config->port,
-                   error_code: $errCode,
-                error_message: $errMsg,
-                         timeout: $this->config->timeout
-            );
-        }
+        // Set port
+        $port = $this->config->ssl
+            ? $this->config->sslPort
+            : $this->config->port;
+
+        // Set context
+        $context = stream_context_create([
+            'ssl' => [
+                'verify_peer'      => $this->config->sslVerify,
+                'verify_peer_name' => $this->config->sslVerify,
+            ]
+        ]);
+
+        $socket = @stream_socket_client(
+                 address: "{$proto}{$this->config->host}:{$port}",
+           error_code: $errCode,
+        error_message: $errMsg,
+                 timeout: $this->config->timeout,
+                 context: $context
+        );
+
 
         if( $socket === false ) {
             throw new ConnectionException(
@@ -130,51 +128,6 @@ class Transport implements TransportInterface
 
 
 
-/* WRITE WORD
------------------------------------------------------------------------------ */
-
-    /**
-     * Format a word with its length information appended.
-     * @param string $word Word to send.
-     * @return string Formatter word.
-     * @throws TransportException Unable to encode word.
-     */
-    private function writeWord( string $word ) : string
-    {
-        $length = mb_strlen( string: $word, encoding: '8bit' );
-        $prefix = self::encodeLength( length: $length );
-
-        return $prefix . $word;
-    }
-
-
-
-/* READ WORD
------------------------------------------------------------------------------ */
-
-    /**
-     * @return string Word from device.
-     * @throws TransportException Error reading word.
-     */
-    private function readWord() : string
-    {
-        $length = $this->decodeLength();
-
-        if( $length < 0 ) {
-            throw new TransportException( message: "Invalid word length: {$length}" );
-        }
-        if( $length === 0 ) { return ''; }
-
-        $word = fread( stream: $this->socket, length: $length );
-        if( $word === false ) {
-            throw new TransportException(  message: "Error reading word." );
-        }
-
-        return $word;
-    }
-
-
-
 /* ENCODE LENGTH
 ----------------------------------------------------------------------------- */
 
@@ -207,6 +160,55 @@ class Transport implements TransportInterface
         }
 
         throw new TransportException( message: "Error getting word length." );
+    }
+
+
+
+/* WRITE WORD
+----------------------------------------------------------------------------- */
+
+    /**
+     * Format a word with its length information appended.
+     * @param string $word Word to send.
+     * @return string Formatter word.
+     * @throws TransportException Unable to encode word.
+     */
+    private function writeWord( string $word ) : string
+    {
+        $length = mb_strlen( string: $word, encoding: '8bit' );
+        $prefix = self::encodeLength( length: $length );
+
+        return $prefix . $word;
+    }
+
+
+
+/* READ WORD
+----------------------------------------------------------------------------- */
+
+    /**
+     * @return string Word from device.
+     * @throws TransportException Error reading word.
+     * @throws TimeoutException Socket timeout.
+     */
+    private function readWord() : string
+    {
+        $length = $this->decodeLength();
+
+        if( $length < 0 ) {
+            throw new TransportException( message: "Invalid word length: {$length}" );
+        }
+        if( $length === 0 ) { return ''; }
+
+        $word = fread( stream: $this->socket, length: $length );
+        if( stream_get_meta_data( $this->socket )['timed_out'] ) {
+            throw new TimeoutException( message: 'Socket timed out' );
+        }
+        if( $word === false  || $word === '' ) {
+            throw new TransportException(  message: "Error reading word." );
+        }
+
+        return $word;
     }
 
 
@@ -259,11 +261,15 @@ class Transport implements TransportInterface
     /**
      * @return int Get length from byte.
      * @throws TransportException Unable to read a byte.
+     * @throws TimeoutException Socket timeout.
      */
     private function readByte() : int
     {
         $data = fread( stream: $this->socket, length: 1 );
-        if( $data === false ) {
+        if( stream_get_meta_data( $this->socket )['timed_out'] ) {
+            throw new TimeoutException( message: 'Socket timed out' );
+        }
+        if( $data === false  || $data === '' ) {
             throw new TransportException( message: 'fread() failed' );
         }
         return ord( character: $data );

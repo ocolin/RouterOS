@@ -553,7 +553,6 @@ The following features are planned for future releases:
 
 - **Concurrent commands** — multi-tag usage
 - **Streaming cancellation** — explicit `/cancel` command support
-- **SSH transport** — alternative transport layer using SSH authentication
 - **CLI-style input** — parse RouterOS CLI syntax directly as command input
 - **Laravel integration** — Facade for Laravel applications
 
