@@ -5,6 +5,7 @@ declare( strict_types = 1 );
 namespace Ocolin\RouterOS\tests\Unit;
 
 use Ocolin\RouterOS\Command;
+use Ocolin\RouterOS\DTO\Sentence;
 use PHPUnit\Framework\TestCase;
 
 class CommandTest extends TestCase
@@ -143,5 +144,27 @@ class CommandTest extends TestCase
             ['/interface/print', '=.proplist=name,type,disabled'],
             $command->toWords()
         );
+    }
+
+
+    public function testTag() : void
+    {
+        $command = new Command('/interface/print')
+            ->tag('4');
+
+        $this->assertSame(
+            ['/interface/print', '.tag=4'],
+            $command->toWords()
+        );
+    }
+
+
+    public function testSentenceTag() : void
+    {
+        $sentence = new Sentence(['!re', '=name=ether1', '.tag=4']);
+
+        $this->assertSame( 're', $sentence->reply );
+        $this->assertSame( '4', $sentence->tag );
+        $this->assertNotContains( '.tag=4', $sentence->words );
     }
 }

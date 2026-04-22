@@ -23,6 +23,11 @@ class Command implements CommandInterface
      */
     private array $queries = [];
 
+    /**
+     * @var string|int|null Tag queries.
+     */
+    private string|int|null $tag = null;
+
     use CommandAliases;
 
 /* CONSTRUCTOR
@@ -111,11 +116,15 @@ class Command implements CommandInterface
      */
     public function toWords() : array
     {
-        return array_merge(
+        $words = array_merge(
             [ $this->endpoint ],
             $this->attributes,
             $this->queries
         );
+
+        if( $this->tag !== null ) { $words[] = ".tag={$this->tag}"; }
+
+        return $words;
     }
 
 
@@ -183,6 +192,24 @@ class Command implements CommandInterface
     public function proplist( array $properties ) : static
     {
         $this->attributes[] = '=.proplist=' . implode( ',', $properties );
+        return $this;
+    }
+
+
+
+/* TAG
+----------------------------------------------------------------------------- */
+
+    /**
+     * Add a tag to the request.
+     *
+     * @param string|int $tag Tag value to add.
+     * @return $this Updated command.
+     */
+    public function tag( string|int $tag ) : static
+    {
+        $this->tag = $tag;
+
         return $this;
     }
 }

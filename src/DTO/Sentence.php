@@ -12,6 +12,11 @@ readonly class Sentence
     public string $reply;
 
     /**
+     * @var int|string|null Tag to mark requests with responses.
+     */
+    public int|string|null $tag;
+
+    /**
      * @var string[] List of words in sentence.
      */
     public array $words;
@@ -28,6 +33,15 @@ readonly class Sentence
             (string)array_shift($raw ),
             characters: '!'
         );
-        $this->words = $raw;
+        $tag = null;
+        foreach( $raw as $key => $word ) {
+            if( str_starts_with( $word, '.tag=' ) ) {
+                $tag = substr( $word, 5 );
+                unset( $raw[$key] );
+                break;
+            }
+        }
+        $this->tag = $tag;
+        $this->words = array_values( $raw );
     }
 }
