@@ -1,3 +1,7 @@
+![Packagist Version](https://img.shields.io/packagist/v/ocolin/routeros)
+![PHP Version](https://img.shields.io/packagist/dependency-v/ocolin/routeros/php)
+![License](https://img.shields.io/packagist/l/ocolin/routeros)
+![Downloads](https://img.shields.io/packagist/dt/ocolin/routeros)
 # RouterOS
 
 A PHP 8.4 client for the MikroTik RouterOS API.
