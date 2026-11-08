@@ -66,6 +66,7 @@ class Session implements SessionInterface
             match( $sentence->reply ) {
                 're'    => yield $sentence,
                 'trap'  => self::handleTrap( $sentence ),
+                'empty' => null,
                 default => throw new SessionException(
                     message: "Unexpected reply: {$sentence->reply}"
                 )
