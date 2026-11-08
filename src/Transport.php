@@ -200,15 +200,7 @@ class Transport implements TransportInterface
         }
         if( $length === 0 ) { return ''; }
 
-        $word = fread( stream: $this->socket, length: $length );
-        if( stream_get_meta_data( $this->socket )['timed_out'] ) {
-            throw new TimeoutException( message: 'Socket timed out' );
-        }
-        if( $word === false  || $word === '' ) {
-            throw new TransportException(  message: "Error reading word." );
-        }
-
-        return $word;
+        return $this->readBytes( length: $length );
     }
 
 
@@ -273,5 +265,38 @@ class Transport implements TransportInterface
             throw new TransportException( message: 'fread() failed' );
         }
         return ord( character: $data );
+    }
+
+
+
+/* READ BYTES
+----------------------------------------------------------------------------- */
+
+    /**
+     * @param int $length Exact number of bytes to read.
+     * @return string Exactly $length bytes.
+     * @throws TransportException Connection closed before enough data arrived.
+     * @throws TimeoutException Socket timeout.
+     */
+    private function readBytes( int $length ) : string
+    {
+        $buffer = '';
+        $remaining  = $length;
+
+        while( $remaining > 0 )
+        {
+            $chunk = fread( stream: $this->socket, length: $remaining );
+
+            if( stream_get_meta_data( $this->socket )['timed_out'] ) {
+                throw new TimeoutException( message: 'Socket timed out' );
+            }
+            if( $chunk === false  || $chunk === '' ) {
+                throw new TransportException( message: "Byte error: {$remaining} of {$length}" );
+            }
+            $buffer .= $chunk;
+            $remaining -= strlen( $chunk );
+        }
+
+        return $buffer;
     }
 }
