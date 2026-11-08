@@ -117,13 +117,8 @@ class Transport implements TransportInterface
         foreach( $words as $word ) { $output .= $this->writeWord( $word ); }
 
         $output .= $this->writeWord( '' );
-        $response = fwrite( stream: $this->socket, data: $output );
 
-        if( $response === false ) {
-            throw new TransportException(
-                message: "Error writing to socket."
-            );
-        }
+        $this->writeBytes( $output );
     }
 
 
@@ -273,6 +268,9 @@ class Transport implements TransportInterface
 ----------------------------------------------------------------------------- */
 
     /**
+     * Instead of just reading each word, we are checking if we got back the
+     * right number of bytes and if not, we ask for the rest until complete.
+     *
      * @param int $length Exact number of bytes to read.
      * @return string Exactly $length bytes.
      * @throws TransportException Connection closed before enough data arrived.
@@ -288,15 +286,50 @@ class Transport implements TransportInterface
             $chunk = fread( stream: $this->socket, length: $remaining );
 
             if( stream_get_meta_data( $this->socket )['timed_out'] ) {
-                throw new TimeoutException( message: 'Socket timed out' );
+                throw new TimeoutException( message: 'Socket timed out while reading.' );
             }
             if( $chunk === false  || $chunk === '' ) {
-                throw new TransportException( message: "Byte error: {$remaining} of {$length}" );
+                $received = $length - $remaining;
+                throw new TransportException( message: "fread() failed: Received {$received} of {$length}" );
             }
             $buffer .= $chunk;
             $remaining -= strlen( $chunk );
         }
 
         return $buffer;
+    }
+
+
+
+/* WRITE BYTES
+----------------------------------------------------------------------------- */
+
+    /**
+     * Rather than send the entire sentence and hope for the best, we are
+     * checking how much was sent, and sending the rest if incomplete.
+     *
+     * @param string $sentence Sentence to send to Mikrotik device.
+     * @return void
+     */
+    private function writeBytes( string $sentence ) : void
+    {
+        $length = strlen( string: $sentence );
+        $sent = 0;
+
+        while( $sent < $length )
+        {
+            $response = fwrite(
+                stream: $this->socket,
+                  data: substr( string: $sentence, offset: $sent )
+            );
+            if( stream_get_meta_data( $this->socket )['timed_out'] ) {
+                throw new TimeoutException( message: 'Socket timed out while writing.' );
+            }
+            if( $response === false || $response === 0 ) {
+                throw new TransportException( message: "fwrite() failed: Sent {$sent} of {$length}." );
+            }
+
+            $sent += $response;
+        }
     }
 }
